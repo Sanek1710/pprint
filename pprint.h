@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <tuple>
+#include <type_traits>
 
 #include "struct.h"
 #include "traits.h"
@@ -43,26 +44,28 @@ struct range_wrap {
   const Range& range;
   const char* start = "[";
   const char* end = "]";
-  const char* sep = ", ";
 };
 
 template <typename Range, template <typename Value> typename ValueWrapper>
 std::ostream& operator<<(std::ostream& os,
                          const range_wrap<Range, ValueWrapper>& r) {
   auto it = std::begin(r.range);
-  using ValueWrapperT = ValueWrapper<decltype(*it)>;
-  const auto end = std::end(r.range);
+  using Value = decltype(*it);
+  using CleanValue = std::remove_reference_t<Value>;
+  constexpr bool isClass = std::is_class_v<CleanValue>;
 
+  const auto end = std::end(r.range);
   if (it == end) return os << r.start << r.end;
-  os << r.start << "\n";
+  const auto optnl = isClass ? "\n" : " ";
+  os << r.start << optnl;
   {
-    indentos indos{os, true};
-    os << ValueWrapperT{*it};
+    indentos indos{os, isClass};
+    os << ValueWrapper<Value>{*it};
     for (++it; it != end; ++it) {
-      os << r.sep << ValueWrapperT{*it};
+      os << "," << optnl << ValueWrapper<Value>{*it};
     }
   }
-  return os << "\n" << r.end;
+  return os << optnl << r.end;
 }
 
 template <typename T>
@@ -70,7 +73,7 @@ std::enable_if_t<!has_print_v<T> && is_iterable_v<T> && is_map_v<T> &&
                      !ostream_defined_v<T>,
                  std::ostream&>
 operator<<(std::ostream& os, const T& t) {
-  return os << range_wrap<T, key_value_wrap>{t, "{", "}", ",\n"};
+  return os << range_wrap<T, key_value_wrap>{t, "{", "}"};
 }
 
 template <typename T>
@@ -78,7 +81,7 @@ std::enable_if_t<!has_print_v<T> && is_iterable_v<T> && is_set_v<T> &&
                      !ostream_defined_v<T>,
                  std::ostream&>
 operator<<(std::ostream& os, const T& t) {
-  return os << range_wrap<T, value_wrap>{t, "{", "}", ", "};
+  return os << range_wrap<T, value_wrap>{t, "{", "}"};
 }
 
 template <typename T>
@@ -86,7 +89,7 @@ std::enable_if_t<!has_print_v<T> && is_iterable_v<T> && !is_map_v<T> &&
                      !is_set_v<T> && !ostream_defined_v<T>,
                  std::ostream&>
 operator<<(std::ostream& os, const T& t) {
-  return os << range_wrap<T, value_wrap>{t, "[", "]", ", "};
+  return os << range_wrap<T, value_wrap>{t, "[", "]"};
 }
 
 template <typename T1, typename T2>
