@@ -66,22 +66,24 @@ std::ostream& operator<<(std::ostream& os,
 }
 
 template <typename T>
-std::enable_if_t<is_iterable_v<T> && is_map_v<T> && !ostream_defined_v<T>,
+std::enable_if_t<!has_print_v<T> && is_iterable_v<T> && is_map_v<T> &&
+                     !ostream_defined_v<T>,
                  std::ostream&>
 operator<<(std::ostream& os, const T& t) {
   return os << range_wrap<T, key_value_wrap>{t, "{", "}", ",\n"};
 }
 
 template <typename T>
-std::enable_if_t<is_iterable_v<T> && is_set_v<T> && !ostream_defined_v<T>,
+std::enable_if_t<!has_print_v<T> && is_iterable_v<T> && is_set_v<T> &&
+                     !ostream_defined_v<T>,
                  std::ostream&>
 operator<<(std::ostream& os, const T& t) {
   return os << range_wrap<T, value_wrap>{t, "{", "}", ", "};
 }
 
 template <typename T>
-std::enable_if_t<is_iterable_v<T> && !is_map_v<T> && !is_set_v<T> &&
-                     !ostream_defined_v<T>,
+std::enable_if_t<!has_print_v<T> && is_iterable_v<T> && !is_map_v<T> &&
+                     !is_set_v<T> && !ostream_defined_v<T>,
                  std::ostream&>
 operator<<(std::ostream& os, const T& t) {
   return os << range_wrap<T, value_wrap>{t, "[", "]", ", "};
